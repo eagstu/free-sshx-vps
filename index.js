@@ -1,8 +1,11 @@
 const http = require("http");
 const { execSync, spawn } = require("child_process");
 const fs = require("fs");
+const path = require("path");
 
 const PORT = process.env.PORT || 3000;
+const BIN_DIR = path.join(__dirname, "bin");
+const SSHX_BIN = path.join(BIN_DIR, "sshx");
 
 let distro = "unknown";
 let installing = false;
@@ -26,23 +29,14 @@ function detectDistro() {
 function run(command) {
   console.log("$", command);
 
-  execSync(command, {
+  return execSync(command, {
     stdio: "inherit",
     shell: "/bin/bash"
   });
 }
 
 function hasSshx() {
-  try {
-    execSync("command -v sshx", {
-      stdio: "ignore",
-      shell: "/bin/bash"
-    });
-
-    return true;
-  } catch {
-    return false;
-  }
+  return fs.existsSync(SSHX_BIN);
 }
 
 function installSshx() {
@@ -51,9 +45,28 @@ function installSshx() {
     return;
   }
 
-  console.log("Instalando SSHX pelo instalador oficial...");
+  console.log("Instalando SSHX...");
 
-  run("curl -sSf https://sshx.io/get | sh");
+  fs.mkdirSync(BIN_DIR, {
+    recursive: true
+  });
+
+  const url =
+    "https://s3.amazonaws.com/sshx/sshx-x86_64-unknown-linux-musl.tar.gz";
+
+  const archive = path.join(BIN_DIR, "sshx.tar.gz");
+
+  run(`curl -L "${url}" -o "${archive}"`);
+
+  run(`tar -xzf "${archive}" -C "${BIN_DIR}"`);
+
+  run(`chmod +x "${SSHX_BIN}"`);
+
+  try {
+    fs.unlinkSync(archive);
+  } catch {}
+
+  console.log(`SSHX instalado em: ${SSHX_BIN}`);
 }
 
 function startSshx() {
@@ -64,8 +77,7 @@ function startSshx() {
 
   console.log("Iniciando SSHX...");
 
-  sshxProcess = spawn("sshx", [], {
-    shell: true,
+  sshxProcess = spawn(SSHX_BIN, [], {
     env: process.env
   });
 
@@ -79,10 +91,12 @@ function startSshx() {
     if (match && !sshxUrl) {
       sshxUrl = match[0];
 
-      console.log("\n==============================");
+      console.log("");
+      console.log("==============================");
       console.log("SSHX URL:");
       console.log(sshxUrl);
-      console.log("==============================\n");
+      console.log("==============================");
+      console.log("");
     }
   }
 
@@ -91,11 +105,13 @@ function startSshx() {
 
   sshxProcess.on("error", error => {
     console.error("Erro ao iniciar SSHX:", error.message);
+
     sshxProcess = null;
   });
 
   sshxProcess.on("exit", code => {
     console.log(`SSHX finalizado: ${code}`);
+
     sshxProcess = null;
   });
 }
