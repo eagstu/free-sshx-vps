@@ -1,0 +1,13 @@
+{
+  "name": "sshx-installer-server",
+  "version": "1.0.0",
+  "description": "Servidor Node.js para instalar e iniciar SSHX",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
