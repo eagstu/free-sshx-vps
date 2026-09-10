@@ -1,6 +1,7 @@
-FROM node:22-bookworm-slim
+FROM ubuntu:24.04
 
-USER 0
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PORT=10000
 
 WORKDIR /app
 
@@ -10,7 +11,15 @@ RUN apt-get update && \
     ca-certificates \
     tar \
     procps \
+    sudo \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -s /bin/bash ubuntu && \
+    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER 0
 
 COPY package.json ./
 
@@ -25,10 +34,6 @@ RUN mkdir -p /app/bin && \
 
 COPY . .
 
-ENV PORT=10000
-
 EXPOSE 10000
-
-USER 0
 
 CMD ["node", "index.js"]
