@@ -28,14 +28,32 @@ function run(command) {
 
   execSync(command, {
     stdio: "inherit",
-    shell: "/bin/sh"
+    shell: "/bin/bash"
   });
 }
 
-function installSshx() {
-  console.log("Instalando SSHX...");
+function hasSshx() {
+  try {
+    execSync("command -v sshx", {
+      stdio: "ignore",
+      shell: "/bin/bash"
+    });
 
-  run("npm install -g sshx");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function installSshx() {
+  if (hasSshx()) {
+    console.log("SSHX já está instalado.");
+    return;
+  }
+
+  console.log("Instalando SSHX pelo instalador oficial...");
+
+  run("curl -sSf https://sshx.io/get | sh");
 }
 
 function startSshx() {
@@ -47,15 +65,16 @@ function startSshx() {
   console.log("Iniciando SSHX...");
 
   sshxProcess = spawn("sshx", [], {
-    shell: true
+    shell: true,
+    env: process.env
   });
 
-  sshxProcess.stdout.on("data", data => {
+  function handleOutput(data) {
     const text = data.toString();
 
     process.stdout.write(text);
 
-    const match = text.match(/https?:\/\/[^\s]+/);
+    const match = text.match(/https?:\/\/[^\s"'`]+/);
 
     if (match && !sshxUrl) {
       sshxUrl = match[0];
@@ -65,28 +84,18 @@ function startSshx() {
       console.log(sshxUrl);
       console.log("==============================\n");
     }
-  });
+  }
 
-  sshxProcess.stderr.on("data", data => {
-    const text = data.toString();
+  sshxProcess.stdout.on("data", handleOutput);
+  sshxProcess.stderr.on("data", handleOutput);
 
-    process.stderr.write(text);
-
-    const match = text.match(/https?:\/\/[^\s]+/);
-
-    if (match && !sshxUrl) {
-      sshxUrl = match[0];
-
-      console.log("\n==============================");
-      console.log("SSHX URL:");
-      console.log(sshxUrl);
-      console.log("==============================\n");
-    }
+  sshxProcess.on("error", error => {
+    console.error("Erro ao iniciar SSHX:", error.message);
+    sshxProcess = null;
   });
 
   sshxProcess.on("exit", code => {
     console.log(`SSHX finalizado: ${code}`);
-
     sshxProcess = null;
   });
 }
@@ -134,7 +143,8 @@ const server = http.createServer(async (req, res) => {
 
       return res.end(JSON.stringify({
         success: true,
-        message: "SSHX iniciado"
+        message: "SSHX iniciado",
+        sshxUrl
       }));
     } catch (error) {
       res.statusCode = 500;
