@@ -16,8 +16,8 @@ RUN apt-get update && \
     npm \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m -s /bin/bash ubuntu && \
-    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
+    chmod 440 /etc/sudoers.d/ubuntu
 
 USER 0
 
