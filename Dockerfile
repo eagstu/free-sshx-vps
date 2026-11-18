@@ -145,4 +145,4 @@ USER root
 
 ENTRYPOINT ["/bin/bash", "/usr/local/bin/docker-entrypoint.sh"]
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/usr/local/bin/docker-entrypoint.sh"]
