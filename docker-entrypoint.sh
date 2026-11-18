@@ -1,6 +1,5 @@
 
 #!/bin/bash
-
 set -e
 
 echo "================================"
@@ -14,8 +13,8 @@ echo "[Docker] Starting dockerd..."
 dockerd \
     --host=unix:///var/run/docker.sock \
     --data-root=/var/lib/docker \
-    --storage-driver="${DOCKER_STORAGE_DRIVER:-overlay2}" \
-    --iptables=true &
+    --storage-driver="${DOCKER_STORAGE_DRIVER:-vfs}" \
+    --iptables=false &
 
 DOCKER_PID=$!
 
@@ -30,7 +29,7 @@ for i in $(seq 1 60); do
     fi
 
     if ! kill -0 "$DOCKER_PID" 2>/dev/null; then
-        echo "[Docker] Daemon exited unexpectedly."
+        echo "[Docker] Daemon exited."
         exit 1
     fi
 
@@ -38,7 +37,7 @@ for i in $(seq 1 60); do
 done
 
 if [ "$READY" -ne 1 ]; then
-    echo "[Docker] Docker startup timeout."
+    echo "[Docker] Startup timeout."
     exit 1
 fi
 
