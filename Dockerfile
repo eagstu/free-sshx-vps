@@ -1,3 +1,4 @@
+
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -5,11 +6,11 @@ ENV TZ=UTC
 ENV PORT=10000
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
+ENV DOCKER_HOST=unix:///var/run/docker.sock
 
 WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt-get update && apt-get install -y \
     sudo \
     curl \
     wget \
@@ -83,46 +84,61 @@ RUN apt-get update && \
     cron \
     tzdata \
     locales \
-    && \
-    locale-gen en_US.UTF-8 && \
-    rm -rf /var/lib/apt/lists/*
+    iptables \
+    docker.io \
+    docker-compose-v2 \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN ln -sf /usr/share/zoneinfo/UTC /etc/localtime && \
-    echo UTC > /etc/timezone
+RUN ln -sf /usr/share/zoneinfo/UTC /etc/localtime \
+    && echo UTC > /etc/timezone
 
-RUN echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
-    chmod 440 /etc/sudoers.d/ubuntu
+RUN echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu \
+    && chmod 440 /etc/sudoers.d/ubuntu
 
-RUN mkdir -p /run/sshd /app/bin
+RUN mkdir -p /run/sshd /app/bin /var/lib/docker
 
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get update && \
-    apt-get install -y nodejs && \
-    npm install -g npm@latest && \
-    rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get update \
+    && apt-get install -y nodejs \
+    && npm install -g npm@latest \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN node --version && \
-    npm --version && \
-    python3 --version && \
-    gcc --version
+RUN node --version \
+    && npm --version \
+    && python3 --version \
+    && gcc --version \
+    && docker --version \
+    && docker compose version
 
 COPY package.json ./
 
 RUN npm install
 
-RUN curl -L \
-    https://s3.amazonaws.com/sshx/sshx-x86_64-unknown-linux-musl.tar.gz \
-    -o /tmp/sshx.tar.gz && \
-    tar -xzf /tmp/sshx.tar.gz -C /app/bin && \
-    chmod +x /app/bin/sshx && \
-    rm -f /tmp/sshx.tar.gz
+ARG TARGETARCH
+
+RUN case "${TARGETARCH}" in \
+      amd64) SSHX_ARCH="x86_64" ;; \
+      arm64) SSHX_ARCH="aarch64" ;; \
+      *) echo "Arquitetura não suportada pelo SSHX: ${TARGETARCH}"; exit 1 ;; \
+    esac \
+    && curl -fsSL \
+    "https://s3.amazonaws.com/sshx/sshx-${SSHX_ARCH}-unknown-linux-musl.tar.gz" \
+    -o /tmp/sshx.tar.gz \
+    && tar -xzf /tmp/sshx.tar.gz -C /app/bin \
+    && chmod +x /app/bin/sshx \
+    && rm -f /tmp/sshx.tar.gz
 
 COPY . .
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENV PATH="/app/bin:${PATH}"
 
 EXPOSE 10000
 
-USER 0
+USER root
 
-CMD ["node", "index.js"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
