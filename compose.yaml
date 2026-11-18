@@ -4,53 +4,39 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+
     container_name: ubuntu-24
+    hostname: ubuntu-24
+
     privileged: true
+    restart: unless-stopped
+    init: true
+
     ports:
       - "10000:10000"
+
     environment:
       DEBIAN_FRONTEND: noninteractive
       TZ: UTC
       PORT: "10000"
       LANG: C.UTF-8
       LC_ALL: C.UTF-8
+      DOCKER_HOST: unix:///var/run/docker.sock
+      DOCKER_STORAGE_DRIVER: overlay2
+
     volumes:
       - ubuntu-root:/root
       - ubuntu-home:/home
       - ubuntu-app:/app
-      - ubuntu-etc:/etc
-      - ubuntu-var:/var
-      - ubuntu-usr:/usr
-      - ubuntu-bin:/bin
-      - ubuntu-sbin:/sbin
-      - ubuntu-lib:/lib
-      - ubuntu-lib64:/lib64
-      - ubuntu-opt:/opt
-      - ubuntu-srv:/srv
-      - ubuntu-mnt:/mnt
-      - ubuntu-media:/media
-      - ubuntu-boot:/boot
-      - ubuntu-run:/run
-      - ubuntu-localtime:/etc/localtime
-    restart: unless-stopped
+      - ubuntu-docker:/var/lib/docker
+
     stdin_open: true
     tty: true
+
+    stop_grace_period: 30s
 
 volumes:
   ubuntu-root:
   ubuntu-home:
   ubuntu-app:
-  ubuntu-etc:
-  ubuntu-var:
-  ubuntu-usr:
-  ubuntu-bin:
-  ubuntu-sbin:
-  ubuntu-lib:
-  ubuntu-lib64:
-  ubuntu-opt:
-  ubuntu-srv:
-  ubuntu-mnt:
-  ubuntu-media:
-  ubuntu-boot:
-  ubuntu-run:
-  ubuntu-localtime:
+  ubuntu-docker:
