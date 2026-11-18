@@ -129,11 +129,13 @@ RUN case "${TARGETARCH}" in \
     && chmod +x /app/bin/sshx \
     && rm -f /tmp/sshx.tar.gz
 
+
 COPY . .
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENV PATH="/app/bin:${PATH}"
 
@@ -141,7 +143,6 @@ EXPOSE 10000
 
 USER root
 
-RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
-    && chmod +x /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/bin/bash", "/usr/local/bin/docker-entrypoint.sh"]
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
