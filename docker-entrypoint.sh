@@ -12,8 +12,13 @@ echo "[Docker] Starting dockerd..."
 dockerd \
     --host=unix:///var/run/docker.sock \
     --data-root=/var/lib/docker \
-    --storage-driver="${DOCKER_STORAGE_DRIVER:-vfs}" \
-    --iptables=false &
+    --storage-driver=vfs \
+    --iptables=false \
+    --ip6tables=false \
+    --bridge=none \
+    --ip-forward=false \
+    --ip-masq=false \
+    &
 
 DOCKER_PID=$!
 
